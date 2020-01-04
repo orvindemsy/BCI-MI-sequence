@@ -1,32 +1,56 @@
 '''
-MODIFICATION OF SEQ1
+MODIFICATION OF SEQ2
 Created by: Orvin Demsy
 Assignment for on BCI motor imagery sequence
-Due Date: 31 October 2019
+Due Date: 15 November 2019
 
-Initial sequence:
-Seconds     Action
-0           Fixation Cross
-1           Fixation Cross
-2           Beep, Fixation Cross
-3           Fixation Cross gone, Arrow appeared for 1250ms either left or right
-4.25        Arrow gone
-4.25 ~      Classification
+Sequence for Calibration:
+Seconds		Action
+0			Fixation Cross
+1			Fixation Cross
+2			Beep for 0.2s
+            Fixation Cross gone
+            Arrow comes out for 2s either in vertical or horizontal direction
+3           Arrow showing
+4           Arrow gone, black screen
+5           Black screen
+6           Finish, repeat from start
 
-Please create a display with following specification:
-1. Random set of arrow
+Sequence for Test:
+Seconds		Action
+0			Fixation Cross
+1			Fixation Cross
+2			Beep for 0.2s
+            Fixation Cross gone
+            Arrow comes out for 2s either in vertical or horizontal direction
+3           Arrow showing
+4           Arrow gone, black screen
+5           Black screen
+6           Finish, repeat from start
+After these test sequences are repeated 10 times, bar is shown:
 
-2. A sequence should have 1 cross followed by 10 arrows appearing at random order
+Sequence for Bar:
+Seconds		Action
+0           Bar shown
+1			Bar shown
+2			Bar shown
+3           Bar shown
+4           Bar shown
+5           Black screen
+6           Black screen, end
 
-3. At first a prompt should appear inquiring these:
-    - subject number, calibration or test mode, and horizontal or vertical orientation
-    - 'start' button to initiate the sequence
-
-4. Arrows should be appearing in the orientation specified, but in a random order
-    e.g.: horizontal is chosen -> 5 right 5 left or 4 left 6 right or 2 right 3 left 5 right, etc.
-        vertical is chosen -> 5 up 5 down or 4 up 6 down or 2 up 3 down 5 down, etc.
-
-5. Calibration and test are just dummy options, no need to set any algorithm for them.
+Modify seq 2 with following features:
+- Beep 200ms
+- Create 10 trial or seq, 1 run is 10 trial, Change the current trial
+- Two kind of sequence, calibration and test
+- Bar (evaluation result) is shown after 10 test sequence
+- Add black screen 2s
+- Arrow 2s
+- Fixation arrow 2s
+- 5 left, 5 right, random order
+- Horizontal bar that proportional to random number (classification)
+- Vertical bar that proportional to random number (classification)
+- Arrow and bar drawing not image
 '''
 
 import time
@@ -34,6 +58,9 @@ import sys
 import pygame as pg
 from colors import *
 import random
+import pggraph
+import checkbox
+
 pg.init()
 # t0 = pg.time.get_ticks()
 COLOR_INACTIVE = pg.Color('lightskyblue3')
@@ -132,20 +159,6 @@ class InputBox():
         # Blit the rect.
         pg.draw.rect(screen, self.color, self.rect, 2)
 
-    # def draw(self, win, color, width):
-    #     self.a = pg.draw.rect(win, color, (self.x, self.y, self.width, self.height), width)
-    #
-    # def text(self, color, win):
-    #     text = 'Love'
-    #     font = pg.font.SysFont(None, 30)
-    #     text_surf = font.render(text, True, color)
-    #     win.blit(text_surf, (self.x+5, self.y+5))
-    #
-    # def handle_event(self, event):
-    #     if event.type == pg.MOUSEBUTTONDOWN:
-    #         # If the user clicked on the input_box rect.
-    #         if self.a.collidepoint(event.pos):
-
 def disp_timer(win, t0, x, y):
     t1 = pg.time.get_ticks()
     dt = (t1-t0)/1000
@@ -188,12 +201,246 @@ def add_pic(list, pic):
     list.append(pic)
 
 def play_sound():
-    beep = pg.mixer.Sound('short_beep.wav')
+    beep = pg.mixer.Sound('short_beep_200ms.wav')
     while not playedOnce:
-        # beep.play()
-        screen_fill((0, 255, 0))
+        beep.play()
+        screen.fill((0, 255, 0))
         playedOnce = True
 
+def arrow(dir_list, screen, color, idx):
+        if dir_list[idx] == 1:
+            pggraph.arrow_left(screen, color)
+        elif dir_list[idx] == 2:
+            pggraph.arrow_right(screen, color)
+        if dir_list[idx] == 3:
+            pggraph.arrow_down(screen, color)
+        elif dir_list[idx] == 4:
+            pggraph.arrow_up(screen, color)
+
+def bar(screen, width, height, id):
+        if id == 1 or id == 2:
+            # Then horizontal bar
+            pggraph.horizontal_bar(screen, orange, width, height)
+        elif id == 3 or  id == 4:
+            # Then vertical bar
+            pggraph.vertical_bar(screen, red, width, height)
+
+# CALIBRATION SEQUENCE
+def seq_cal(list, idx, n, n_idx):
+    # Time inisialization
+    clock = pg.time.Clock()
+    t0 = pg.time.get_ticks()
+
+    run = True
+
+    # Start time and end time of each arrow
+    s = [0, 2, 4, 6.2, 8]
+    e = [2, 4, 6.2, 8, 10]
+
+    # Declare playedOnce indicator for sound
+    playedOnce = False
+
+    x_n = 610
+    y_n = 0
+
+    while run:
+        screen.fill(black)
+
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                pg.quit()
+
+        text_disp(str(n[n_idx]), screen, x_n, y_n)
+
+        if s[0] < count_time(t0) <= e[0]:
+            pggraph.fixation_cross(screen, white)
+            if count_time(t0) > s[1] - 0.5:
+                while not playedOnce:
+                    beep = pg.mixer.Sound('short_beep_200ms.wav')
+                    beep.play()
+                    playedOnce = True
+
+
+        elif s[1] < count_time(t0) <= e[1]:
+            arrow(list, screen, white, idx)
+
+
+        elif s[2] < count_time(t0) <= e[2]:
+            screen.fill(black)
+            text_disp(str(n[n_idx]), screen, x_n, y_n)
+
+        elif s[3] < count_time(t0) <= e[3]:
+            run = False
+
+        disp_timer(screen, t0, 0, 0)
+        pg.display.flip()
+        clock.tick(30)
+
+# TEST SEQUENCE
+def seq_test(list, idx, n, n_idx):
+    # Time inisialization
+    clock = pg.time.Clock()
+    t0 = pg.time.get_ticks()
+
+    run = True
+
+    # Start time and end time of each arrow
+    s = [0, 2, 4, 6.2, 8]
+    e = [2, 4, 6.2, 8, 10]
+
+    # Declare playedOnce indicator for sound
+    playedOnce = False
+
+    x_n = 610
+    y_n = 0
+
+    while run:
+        screen.fill(black)
+
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                pg.quit()
+
+        text_disp(str(n[n_idx]), screen, x_n, y_n)
+
+        if s[0] < count_time(t0) <= e[0]:
+            pggraph.fixation_cross(screen, white)
+            if count_time(t0) > s[1] - 0.5:
+                while not playedOnce:
+                    beep = pg.mixer.Sound('short_beep_200ms.wav')
+                    beep.play()
+                    playedOnce = True
+
+
+        elif s[1] < count_time(t0) <= e[1]:
+            arrow(list, screen, white, idx)
+
+
+        elif s[2] < count_time(t0) <= e[2]:
+            screen.fill(black)
+            text_disp(str(n[n_idx]), screen, x_n, y_n)
+
+        elif s[3] < count_time(t0) <= e[3]:
+            run = False
+
+        disp_timer(screen, t0, 0, 0)
+        pg.display.flip()
+        clock.tick(30)
+
+# SHOW BAR, id 1 => horizontal, 3 or 4 => vertical
+def bar_display(w, h, id):
+    # Time initialization
+    clock = pg.time.Clock()
+    t0 = pg.time.get_ticks()
+
+    run = True
+
+    # Bar percentage corresponds to MI performance
+    if id == 1 or id == 2:
+        score = w/430*100
+        score = round(score, 2)
+    else:
+        score = h/320*100
+        score = round(score, 2)
+
+    # Start time and end time of each arrow
+    s = [0, 4, 6]
+    e = [4, 6, 7]
+
+    while run:
+        screen.fill(black)
+
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                pg.quit()
+
+        text_disp("Evaluation", screen, 500, 0)
+        if id == 1 or id == 2:
+            text_disp(str(score)+"%", screen, 110, 150)
+        else:
+            text_disp(str(score)+"%", screen, 200, 100)
+
+
+        if s[0] < count_time(t0) <= e[0]:
+            bar(screen, w, h, id)
+
+        if s[1] < count_time(t0) <= e[1]:
+            screen.fill(black)
+
+        if s[2] < count_time(t0) <= e[2]:
+            run = False
+
+        disp_timer(screen, t0, 0, 0)
+        pg.display.flip()
+        clock.tick(30)
+
+# CALIBRATION PHASE
+def horizontal_cal_run():
+    a = [1 for i in range(5)]
+    b = [2 for i in range(5)]
+    l_h = a + b
+    random.shuffle(l_h)
+    print(l_h)
+
+    n = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+    for i in range (10):
+        seq_cal(l_h, i, n, i)
+
+    main_menu()
+
+def vertical_cal_run():
+    a = [3 for i in range(5)]
+    b = [4 for i in range(5)]
+    l_v = a + b
+    random.shuffle(l_v)
+    print(l_v)
+
+    n = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+    for i in range(10):
+        seq_cal(l_v, i, n, i)
+
+    main_menu()
+
+# TEST PHASE
+def horizontal_test_run():
+    a = [1 for i in range(5)]
+    b = [2 for i in range(5)]
+    l_h = a + b
+    random.shuffle(l_h)
+    print(l_h)
+
+    n = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+    # Random number to generate bar's width
+    width = random.randint(100, 430)
+
+    for i in range(10):
+        seq_test(l_h, i, n, i)
+
+    bar_display(w=width, h=50, id=1)
+    main_menu()
+
+def vertical_test_run():
+    a = [3 for i in range(5)]
+    b = [4 for i in range(5)]
+    l_v = a + b
+    random.shuffle(l_v)
+    print(l_v)
+
+    n = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+    # Random number to generate bar's length
+    height = random.randint(100, 320)
+
+    for i in range(10):
+        seq_test(l_v, i, n, i)
+
+    bar_display(w=50, h=height, id=3)
+    main_menu()
+
+# MAIN MENU
 def main_menu():
     clock = pg.time.Clock()
     # Create input box and button objects
@@ -202,6 +449,10 @@ def main_menu():
     button2 = Button((255, 100, 100), 80, 350, 150, 50, "Calibration")
     button3 = Button((255, 100, 100), 400, 280, 150, 50, "Vertical")
     button4 = Button((255, 100, 100), 400, 350, 150, 50, "Horizontal")
+
+    # Checkbox instantiation
+    chkbox1 = checkbox.Checkbox(screen, 80, 280, 1)
+    chkbox2 = checkbox.Checkbox(screen, 80, 350, 2)
 
     menu = True
     while menu:
@@ -236,23 +487,24 @@ def main_menu():
                     button4.color = (150, 150, 120)
 
             if event.type == pg.MOUSEBUTTONDOWN:
-                # if event.button == 1 and button1.isOver(pos):
-                #     t0 = pg.time.get_ticks()
-                #     menu = False
-                #
-                # if event.button == 1 and button2.isOver(pos):
-                #     t0 = pg.time.get_ticks()
-                #     menu = False
-
-                if event.button == 1 and button3.isOver(pos):
-                    vertical_seq()
+                if event.button == 1 and button3.isOver(pos) and chkbox2.checked:
+                    vertical_cal_run()
                     menu = False
-                    # v_seq = True
 
-                if event.button == 1 and button4.isOver(pos):
-                    horizontal_seq()
+                elif event.button == 1 and button4.isOver(pos) and chkbox2.checked:
+                    horizontal_cal_run()
                     menu = False
-                    # h_seq = True
+
+                elif event.button == 1 and button3.isOver(pos) and chkbox1.checked:
+                    vertical_test_run()
+                    menu = False
+
+                elif event.button == 1 and button4.isOver(pos) and chkbox1.checked:
+                    horizontal_test_run()
+                    menu = False
+
+            chkbox1.update_checkbox(event)
+            chkbox2.update_checkbox(event)
 
         screen.fill((30, 30, 30))
         text_disp("Subject No.: ", screen, 150, 105)
@@ -265,228 +517,51 @@ def main_menu():
         button3.draw(screen, 1)
         button4.draw(screen, 1)
 
+        # Render checkbox
+        chkbox1.render_checkbox()
+        chkbox2.render_checkbox()
+
+        # Checkbox instruction
+        if chkbox1.checked and chkbox2.checked:
+            text_disp("Unable to Choose Both Phase", screen, 150, 200)
+        else:
+            text_disp("Please choose Calibration or Test Phase", screen, 90, 200)
+
         # Update screen
         pg.display.flip()
         clock.tick(30)
 
 
-
-def horizontal_seq():
-    l_h = [random.randint(1, 2) for i in range(10)]
-    print(l_h)
-    clock = pg.time.Clock()
-    h_seq = True
-    t0 = pg.time.get_ticks()
-
-    # Declare playedOnce indicator for sound
-    playedOnce = False
-
-    # Start time and end time of each arrow
-    s = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24]
-    e = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26]
-    n = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    x_n = 610
-    y_n = 0
-    while h_seq:
-        for event in pg.event.get():
-            if event.type == pg.QUIT:
-                pg.quit()
-                quit()
-
-        screen.fill((70, 70, 70))
-        # Displaying arrows
-        if s[0] < count_time(t0) <= e[0]:
-            pic_disp(screen, pic_list[0], pos_list[0])
-
-            if count_time(t0) > s[1]-1:
-                while not playedOnce:
-                    beep = pg.mixer.Sound('short_beep.wav')
-                    beep.play()
-                    playedOnce = True
-
-        elif s[1] < count_time(t0) <= e[1]:
-            text_disp(str(n[0]), screen, x_n, y_n)
-            pic_disp(screen, pic_list[l_h[0]], pos_list[l_h[0]])
-
-        elif s[2] < count_time(t0) <= e[2]:
-            text_disp(str(n[1]), screen, x_n, y_n)
-            pic_disp(screen, pic_list[l_h[1]], pos_list[l_h[1]])
-
-        elif s[3] < count_time(t0) <= e[3]:
-            text_disp(str(n[2]), screen, x_n, y_n)
-            pic_disp(screen, pic_list[l_h[2]], pos_list[l_h[2]])
-
-        elif s[4] < count_time(t0) <= e[4]:
-            text_disp(str(n[3]), screen, x_n, y_n)
-            pic_disp(screen, pic_list[l_h[3]], pos_list[l_h[3]])
-
-        elif s[5] < count_time(t0) <= e[5]:
-            text_disp(str(n[4]), screen, x_n, y_n)
-            pic_disp(screen, pic_list[l_h[4]], pos_list[l_h[4]])
-
-        elif s[6] < count_time(t0) <= e[6]:
-            text_disp(str(n[5]), screen, x_n, y_n)
-            pic_disp(screen, pic_list[l_h[5]], pos_list[l_h[5]])
-
-        elif s[7] < count_time(t0) <= e[7]:
-            text_disp(str(n[6]), screen, x_n, y_n)
-            pic_disp(screen, pic_list[l_h[6]], pos_list[l_h[6]])
-
-        elif s[8] < count_time(t0) <= e[8]:
-            text_disp(str(n[7]), screen, x_n, y_n)
-            pic_disp(screen, pic_list[l_h[7]], pos_list[l_h[7]])
-
-        elif s[9] < count_time(t0) <= e[9]:
-            text_disp(str(n[8]), screen, x_n, y_n)
-            pic_disp(screen, pic_list[l_h[8]], pos_list[l_h[8]])
-
-        elif s[10] < count_time(t0) <= e[10]:
-            text_disp(str(n[9]), screen, x_n, y_n)
-            pic_disp(screen, pic_list[l_h[9]], pos_list[l_h[9]])
-
-        elif s[11] < count_time(t0) <= e[11]:
-            pic_disp(screen, pic_list[5], pos_list[l_v[9]])
-            # text_disp("Done", screen, 300, 600)
-
-        elif s[12] < count_time(t0) <= e[12]:
-            pg.time.wait(500)
-            h_seq = False
-            v_seq = False
-            # menu = True
-            main_menu()
-
-
-        disp_timer(screen, t0, 0, 0)
-        pg.display.flip()
-        clock.tick(30)
-
-def vertical_seq():
-    l_v = [random.randint(3, 4) for i in range(10)]
-    print(l_v)
-    clock = pg.time.Clock()
-    v_seq = True
-    t0 = pg.time.get_ticks()
-
-    # Declare playedOnce indicator for sound
-    playedOnce = False
-
-    print(pic_list)
-    # Start time and end time of each arrow
-    s = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24]
-    e = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26]
-    n = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    x_n = 610
-    y_n = 0
-    while v_seq:
-        for event in pg.event.get():
-            if event.type == pg.QUIT:
-                pg.quit()
-                quit()
-
-        screen.fill((70, 70, 70))
-
-        # Displaying arrows
-        if s[0] < count_time(t0) <= e[0]:
-            pic_disp(screen, pic_list[0], pos_list[0])
-
-            if count_time(t0) > s[1]-1:
-                while not playedOnce:
-                    beep = pg.mixer.Sound('short_beep.wav')
-                    beep.play()
-                    playedOnce = True
-
-        elif s[1] < count_time(t0) <= e[1]:
-            text_disp(str(n[0]), screen, x_n, y_n)
-            pic_disp(screen, pic_list[l_v[0]], pos_list[l_v[0]])
-
-        elif s[2] < count_time(t0) <= e[2]:
-            text_disp(str(n[1]), screen, x_n, y_n)
-            pic_disp(screen, pic_list[l_v[1]], pos_list[l_v[1]])
-
-        elif s[3] < count_time(t0) <= e[3]:
-            text_disp(str(n[2]), screen, x_n, y_n)
-            pic_disp(screen, pic_list[l_v[2]], pos_list[l_v[2]])
-
-        elif s[4] < count_time(t0) <= e[4]:
-            text_disp(str(n[3]), screen, x_n, y_n)
-            pic_disp(screen, pic_list[l_v[3]], pos_list[l_v[3]])
-
-        elif s[5] < count_time(t0) <= e[5]:
-            text_disp(str(n[4]), screen, x_n, y_n)
-            pic_disp(screen, pic_list[l_v[4]], pos_list[l_v[4]])
-
-        elif s[6] < count_time(t0) <= e[6]:
-            text_disp(str(n[5]), screen, x_n, y_n)
-            pic_disp(screen, pic_list[l_v[5]], pos_list[l_v[5]])
-
-        elif s[7] < count_time(t0) <= e[7]:
-            text_disp(str(n[6]), screen, x_n, y_n)
-            pic_disp(screen, pic_list[l_v[6]], pos_list[l_v[6]])
-
-        elif s[8] < count_time(t0) <= e[8]:
-            text_disp(str(n[7]), screen, x_n, y_n)
-            pic_disp(screen, pic_list[l_v[7]], pos_list[l_v[7]])
-
-        elif s[9] < count_time(t0) <= e[9]:
-            text_disp(str(n[8]), screen, x_n, y_n)
-            pic_disp(screen, pic_list[l_v[8]], pos_list[l_v[8]])
-
-        elif s[10] < count_time(t0) <= e[10]:
-            text_disp(str(n[9]), screen, x_n, y_n)
-            pic_disp(screen, pic_list[l_v[9]], pos_list[l_v[9]])
-
-        elif s[11] < count_time(t0) <= e[11]:
-            pic_disp(screen, pic_list[5], pos_list[l_v[9]])
-            # text_disp("Done", screen, 300, 600)
-
-        elif s[12] < count_time(t0) <= e[12]:
-            pg.time.wait(500)
-            # h_seq = False
-            v_seq = False
-            # menu = True
-            main_menu()
-
-
-        disp_timer(screen, t0, 0, 0)
-        pg.display.flip()
-        clock.tick(60)
-
-
-# Random list of 1 and 2
-# l_h = [random.randint(1, 2) for i in range(10)]
-# Random list of 3 and 4
-l_v = [random.randint(3, 4) for i in range(10)]
-
 def main():
-    # Load all pictures and their position
-    add_pic(pic_list, pic_load("white_cross.png"))
-    center_pos(pic_list[0], screen, pos_list)
-
-    # Arrow in horizontal direction
-    add_pic(pic_list, pic_load("left_arrow.png"))
-    center_pos(pic_list[1], screen, pos_list)
-    add_pic(pic_list, pic_load("right_arrow.png"))
-    center_pos(pic_list[2], screen, pos_list)
-
-    # Arrow in vertical direction
-    add_pic(pic_list, pic_load("up_arrow.png"))
-    center_pos(pic_list[3], screen, pos_list)
-    add_pic(pic_list, pic_load("down_arrow.png"))
-    center_pos(pic_list[4], screen, pos_list)
-
-    # Add horizontal bar
-    add_pic(pic_list, pic_load("blue_h_bar.png"))
-    center_pos(pic_list[5], screen, pos_list)
+    # # Load all pictures and their position
+    # add_pic(pic_list, pic_load("white_cross.png"))
+    # center_pos(pic_list[0], screen, pos_list)
+    #
+    # # Arrow in horizontal direction
+    # add_pic(pic_list, pic_load("left_arrow.png"))
+    # center_pos(pic_list[1], screen, pos_list)
+    # add_pic(pic_list, pic_load("right_arrow.png"))
+    # center_pos(pic_list[2], screen, pos_list)
+    #
+    # # Arrow in vertical direction
+    # add_pic(pic_list, pic_load("up_arrow.png"))
+    # center_pos(pic_list[3], screen, pos_list)
+    # add_pic(pic_list, pic_load("down_arrow.png"))
+    # center_pos(pic_list[4], screen, pos_list)
+    #
+    # # Add horizontal bar
+    # add_pic(pic_list, pic_load("blue_h_bar.png"))
+    # center_pos(pic_list[5], screen, pos_list)
 
     done = False
 
     while not done:
         main_menu()
-        horizontal_seq()
-        vertical_seq()
+        # horizontal_run()
+        # vertical_run()
 
-if __name__ == '__main__':
+# if __name__ == '__main__':
     # print(l_h)
     # print(l_v)
-    main()
-    pg.quit()
+main()
+pg.quit()
