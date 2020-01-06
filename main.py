@@ -1,65 +1,34 @@
 '''
-MODIFICATION OF SEQ2
+UPDATED VERSION OF SEQ3
 Created by: Orvin Demsy
 Assignment for on BCI motor imagery sequence
-Due Date: 15 November 2019
+Due Date: 27 November 2019
 
-Sequence for Calibration:
-Seconds		Action
-0			Fixation Cross
-1			Fixation Cross
-2			Beep for 0.2s
-            Fixation Cross gone
-            Arrow comes out for 2s either in vertical or horizontal direction
-3           Arrow showing
-4           Arrow gone, black screen
-5           Black screen
-6           Finish, repeat from start
+Sequence for calibration
+fixation cross -> beep -> arrow -> b.s
 
-Sequence for Test:
-Seconds		Action
-0			Fixation Cross
-1			Fixation Cross
-2			Beep for 0.2s
-            Fixation Cross gone
-            Arrow comes out for 2s either in vertical or horizontal direction
-3           Arrow showing
-4           Arrow gone, black screen
-5           Black screen
-6           Finish, repeat from start
-After these test sequences are repeated 10 times, bar is shown:
 
-Sequence for Bar:
-Seconds		Action
-0           Bar shown
-1			Bar shown
-2			Bar shown
-3           Bar shown
-4           Bar shown
-5           Black screen
-6           Black screen, end
+Sequence for test
+fixation cross -> beep -> arrow -> b.s -> bar -> b.s
 
-Modify seq 2 with following features:
+Each display will last for:
+- Fixation 2s
 - Beep 200ms
-- Create 10 trial or seq, 1 run is 10 trial, Change the current trial
-- Two kind of sequence, calibration and test
-- Bar (evaluation result) is shown after 10 test sequence
-- Add black screen 2s
 - Arrow 2s
-- Fixation arrow 2s
-- 5 left, 5 right, random order
-- Horizontal bar that proportional to random number (classification)
-- Vertical bar that proportional to random number (classification)
-- Arrow and bar drawing not image
+- Black screen (b.s.) 2s
+- Bar 4s
+
+Other modification request:
+- Consider dropdown menu with default mode options (calibration or test)
+- Checkbox (radio?) for direction (vertical or horizontal)
+- Arrow in red, bar in yellow
 '''
 
-import time
-import sys
 import pygame as pg
 from colors import *
 import random
 import pggraph
-import checkbox
+from etc import checkbox
 
 pg.init()
 # t0 = pg.time.get_ticks()
@@ -68,7 +37,7 @@ COLOR_ACTIVE = pg.Color('dodgerblue2')
 FONT1 = pg.font.Font(None, 35)
 FONT2 = pg.font.Font(None, 30)
 
-# Generating screen
+# Generate screen
 w_scr = 640
 h_scr = 480
 size_scr = (w_scr, h_scr)
@@ -85,6 +54,10 @@ text = ''
 # List for picture and their positions
 pic_list = []
 pos_list = []
+
+# Horizontal or vertical test
+hor_test = False
+ver_test = False
 
 class JustText():
     def __init__(self, text=''):
@@ -220,10 +193,10 @@ def arrow(dir_list, screen, color, idx):
 def bar(screen, width, height, id):
         if id == 1 or id == 2:
             # Then horizontal bar
-            pggraph.horizontal_bar(screen, orange, width, height)
+            pggraph.horizontal_bar(screen, yellow, width, height)
         elif id == 3 or  id == 4:
             # Then vertical bar
-            pggraph.vertical_bar(screen, red, width, height)
+            pggraph.vertical_bar(screen, yellow, width, height)
 
 # CALIBRATION SEQUENCE
 def seq_cal(list, idx, n, n_idx):
@@ -262,7 +235,7 @@ def seq_cal(list, idx, n, n_idx):
 
 
         elif s[1] < count_time(t0) <= e[1]:
-            arrow(list, screen, white, idx)
+            arrow(list, screen, red, idx)
 
 
         elif s[2] < count_time(t0) <= e[2]:
@@ -277,20 +250,33 @@ def seq_cal(list, idx, n, n_idx):
         clock.tick(30)
 
 # TEST SEQUENCE
-def seq_test(list, idx, n, n_idx):
+def seq_test(list, idx, n, n_idx, bar_w, bar_h, hv_id):
     # Time inisialization
     clock = pg.time.Clock()
     t0 = pg.time.get_ticks()
 
     run = True
 
+    # # Define width and height for evaluation bar
+    # bar_width = random.randint(100, 430)
+    # bar_height = random.randint(100, 320)
+
+    # Bar percentage corresponds to MI performance
+    if id == 1 or id == 2:
+        score = bar_w / 430 * 100
+        score = round(score, 2)
+    else:
+        score = bar_h / 320 * 100
+        score = round(score, 2)
+
     # Start time and end time of each arrow
-    s = [0, 2, 4, 6.2, 8]
-    e = [2, 4, 6.2, 8, 10]
+    s = [0, 2, 4, 6, 10, 12.5]
+    e = [2, 4, 6, 10, 12.5, 14]
 
     # Declare playedOnce indicator for sound
     playedOnce = False
 
+    # Text position
     x_n = 610
     y_n = 0
 
@@ -313,7 +299,7 @@ def seq_test(list, idx, n, n_idx):
 
 
         elif s[1] < count_time(t0) <= e[1]:
-            arrow(list, screen, white, idx)
+            arrow(list, screen, red, idx)
 
 
         elif s[2] < count_time(t0) <= e[2]:
@@ -321,6 +307,20 @@ def seq_test(list, idx, n, n_idx):
             text_disp(str(n[n_idx]), screen, x_n, y_n)
 
         elif s[3] < count_time(t0) <= e[3]:
+            text_disp("Evaluation", screen, 500, 20)
+            text_disp(str(n[n_idx]), screen, x_n, y_n)
+            if id == 1 or id == 2:
+                text_disp(str(score) + "%", screen, 110, 150)
+            else:
+                text_disp(str(score) + "%", screen, 200, 100)
+
+            bar(screen, bar_w, bar_h, hv_id)
+
+        elif s[4] < count_time(t0) <= e[4]:
+            screen.fill(black)
+            text_disp(str(n[n_idx]), screen, x_n, y_n)
+
+        elif s[5] < count_time(t0) <= e[5]:
             run = False
 
         disp_timer(screen, t0, 0, 0)
@@ -413,13 +413,11 @@ def horizontal_test_run():
 
     n = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
-    # Random number to generate bar's width
-    width = random.randint(100, 430)
-
     for i in range(10):
-        seq_test(l_h, i, n, i)
+        # Random number to generate bar's width
+        bar_width = random.randint(100, 430)
+        seq_test(l_h, i, n, i, bar_w=bar_width, bar_h=50, hv_id=1)
 
-    bar_display(w=width, h=50, id=1)
     main_menu()
 
 def vertical_test_run():
@@ -431,13 +429,11 @@ def vertical_test_run():
 
     n = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
-    # Random number to generate bar's length
-    height = random.randint(100, 320)
-
     for i in range(10):
-        seq_test(l_v, i, n, i)
+        # Random number to generate bar's length
+        bar_height = random.randint(100, 320)
+        seq_test(l_v, i, n, i, bar_w=50, bar_h=bar_height, hv_id=3)
 
-    bar_display(w=50, h=height, id=3)
     main_menu()
 
 # MAIN MENU
@@ -533,25 +529,6 @@ def main_menu():
 
 
 def main():
-    # # Load all pictures and their position
-    # add_pic(pic_list, pic_load("white_cross.png"))
-    # center_pos(pic_list[0], screen, pos_list)
-    #
-    # # Arrow in horizontal direction
-    # add_pic(pic_list, pic_load("left_arrow.png"))
-    # center_pos(pic_list[1], screen, pos_list)
-    # add_pic(pic_list, pic_load("right_arrow.png"))
-    # center_pos(pic_list[2], screen, pos_list)
-    #
-    # # Arrow in vertical direction
-    # add_pic(pic_list, pic_load("up_arrow.png"))
-    # center_pos(pic_list[3], screen, pos_list)
-    # add_pic(pic_list, pic_load("down_arrow.png"))
-    # center_pos(pic_list[4], screen, pos_list)
-    #
-    # # Add horizontal bar
-    # add_pic(pic_list, pic_load("blue_h_bar.png"))
-    # center_pos(pic_list[5], screen, pos_list)
 
     done = False
 
