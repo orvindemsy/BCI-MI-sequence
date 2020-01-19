@@ -1,34 +1,40 @@
 '''
-UPDATED VERSION OF SEQ3
+UPDATED VERSION OF SEQ3, draft
 Created by: Orvin Demsy
 Assignment for on BCI motor imagery sequence
-Due Date: 27 November 2019
+Due Date: 16-20 December 2019
 
-Sequence for calibration
-fixation cross -> beep -> arrow -> b.s
+Task:
+- Add UDP communication protocol so that Program.cs (C# file) can read sent message
+- Add input box for session no. and run no.
+- Message has to comply with the requirement stated below
 
+Message requirement:
+received_data = [T/O] + [Su] + [S] + [R] + [D] + [L] + [t]
+                  0      1,2    3     4     5     6     7
+[T/R/O/F]: Training (Relax) / Online Test (Feedback)
+[Su]: Number of subject 00, 01, 02, ..., 99
+[S]:  Number of session 0, 1, ..., 9
+[R]:  Number of run 0, 1, ..., 9
+[D]:  Duration of recording in seconds 0, 1, ..., 9
+[L]:  Label of task 0, 1, 2
+[t]:  Number of trial during a run 0, 1, ..., 9
 
-Sequence for test
-fixation cross -> beep -> arrow -> b.s -> bar -> b.s
-
-Each display will last for:
-- Fixation 2s
-- Beep 200ms
-- Arrow 2s
-- Black screen (b.s.) 2s
-- Bar 4s
-
-Other modification request:
-- Consider dropdown menu with default mode options (calibration or test)
-- Checkbox (radio?) for direction (vertical or horizontal)
-- Arrow in red, bar in yellow
+* For now 'T/R/O/F', 'L' and 't' can be any character and are predetermined (dummy)
 '''
 
 import pygame as pg
 from colors import *
 import random
 import pggraph
-from etc import checkbox
+import dropdownmode as ddl
+import dropdowndir as ddr
+import subprocess
+import socket
+
+# Define port for UDP connection
+UDP_IP = "127.0.0.1"  # IP address
+UDP_PORT = 1010  # port
 
 pg.init()
 # t0 = pg.time.get_ticks()
@@ -37,7 +43,7 @@ COLOR_ACTIVE = pg.Color('dodgerblue2')
 FONT1 = pg.font.Font(None, 35)
 FONT2 = pg.font.Font(None, 30)
 
-# Generate screen
+# Generating screen
 w_scr = 640
 h_scr = 480
 size_scr = (w_scr, h_scr)
@@ -100,6 +106,7 @@ class InputBox():
         self.text = text
         self.txt_surface = FONT2.render(text, True, self.color)
         self.active = False
+        self.text2UDP = ''
 
     def handle_event(self, event):
         if event.type == pg.MOUSEBUTTONDOWN:
@@ -112,7 +119,7 @@ class InputBox():
         if event.type == pg.KEYDOWN:
             if self.active:
                 if event.key == pg.K_RETURN:
-                    print(self.text)
+                    self.text2UDP = '' + self.text
                     self.text = ''
                 elif event.key == pg.K_BACKSPACE:
                     self.text = self.text[:-1]
@@ -121,9 +128,11 @@ class InputBox():
                 # Re-render the text.
                 self.txt_surface = FONT2.render(self.text, True, self.color)
 
+        return self.text2UDP
+
     def update(self):
         # Resize the box if the text is too long.
-        width = max(200, self.txt_surface.get_width()+10)
+        width = max(self.rect.w, self.txt_surface.get_width()+10)
         self.rect.w = width
 
     def draw(self, screen):
@@ -131,6 +140,8 @@ class InputBox():
         screen.blit(self.txt_surface, (self.rect.x+5, self.rect.y+5))
         # Blit the rect.
         pg.draw.rect(screen, self.color, self.rect, 2)
+
+
 
 def disp_timer(win, t0, x, y):
     t1 = pg.time.get_ticks()
@@ -257,12 +268,8 @@ def seq_test(list, idx, n, n_idx, bar_w, bar_h, hv_id):
 
     run = True
 
-    # # Define width and height for evaluation bar
-    # bar_width = random.randint(100, 430)
-    # bar_height = random.randint(100, 320)
-
     # Bar percentage corresponds to MI performance
-    if id == 1 or id == 2:
+    if hv_id == 1 or hv_id == 2:
         score = bar_w / 430 * 100
         score = round(score, 2)
     else:
@@ -297,7 +304,7 @@ def seq_test(list, idx, n, n_idx, bar_w, bar_h, hv_id):
                     beep.play()
                     playedOnce = True
 
-
+        # idx is the index of array of direction 1, 2 or 3, 4
         elif s[1] < count_time(t0) <= e[1]:
             arrow(list, screen, red, idx)
 
@@ -309,7 +316,7 @@ def seq_test(list, idx, n, n_idx, bar_w, bar_h, hv_id):
         elif s[3] < count_time(t0) <= e[3]:
             text_disp("Evaluation", screen, 500, 20)
             text_disp(str(n[n_idx]), screen, x_n, y_n)
-            if id == 1 or id == 2:
+            if hv_id == 1 or hv_id == 2:
                 text_disp(str(score) + "%", screen, 110, 150)
             else:
                 text_disp(str(score) + "%", screen, 200, 100)
@@ -327,52 +334,6 @@ def seq_test(list, idx, n, n_idx, bar_w, bar_h, hv_id):
         pg.display.flip()
         clock.tick(30)
 
-# SHOW BAR, id 1 => horizontal, 3 or 4 => vertical
-def bar_display(w, h, id):
-    # Time initialization
-    clock = pg.time.Clock()
-    t0 = pg.time.get_ticks()
-
-    run = True
-
-    # Bar percentage corresponds to MI performance
-    if id == 1 or id == 2:
-        score = w/430*100
-        score = round(score, 2)
-    else:
-        score = h/320*100
-        score = round(score, 2)
-
-    # Start time and end time of each arrow
-    s = [0, 4, 6]
-    e = [4, 6, 7]
-
-    while run:
-        screen.fill(black)
-
-        for event in pg.event.get():
-            if event.type == pg.QUIT:
-                pg.quit()
-
-        text_disp("Evaluation", screen, 500, 0)
-        if id == 1 or id == 2:
-            text_disp(str(score)+"%", screen, 110, 150)
-        else:
-            text_disp(str(score)+"%", screen, 200, 100)
-
-
-        if s[0] < count_time(t0) <= e[0]:
-            bar(screen, w, h, id)
-
-        if s[1] < count_time(t0) <= e[1]:
-            screen.fill(black)
-
-        if s[2] < count_time(t0) <= e[2]:
-            run = False
-
-        disp_timer(screen, t0, 0, 0)
-        pg.display.flip()
-        clock.tick(30)
 
 # CALIBRATION PHASE
 def horizontal_cal_run():
@@ -440,15 +401,36 @@ def vertical_test_run():
 def main_menu():
     clock = pg.time.Clock()
     # Create input box and button objects
-    input_box1 = InputBox(320, 100, 140, 32)
-    button1 = Button((255, 100, 100), 80, 280, 150, 50, "Test")
-    button2 = Button((255, 100, 100), 80, 350, 150, 50, "Calibration")
-    button3 = Button((255, 100, 100), 400, 280, 150, 50, "Vertical")
-    button4 = Button((255, 100, 100), 400, 350, 150, 50, "Horizontal")
+    input_subno = InputBox(230, 80, 80, 30)
+    input_noses = InputBox(230, 120, 80, 30)
+    input_norun = InputBox(230, 160, 80, 30)
+    button_run = Button((255, 100, 100), 80, 230, 180, 50, "Run")
+    button_trn = Button((255, 100, 100), 360, 230, 180, 50, "Train")
+    button_udp = Button((255, 100, 100), 360, 110, 180, 50, "Send UDP")
 
-    # Checkbox instantiation
-    chkbox1 = checkbox.Checkbox(screen, 80, 280, 1)
-    chkbox2 = checkbox.Checkbox(screen, 80, 350, 2)
+    # Dropdown list instatiation
+    dd_mode = ddl.DropDown(80, 320, 180, 50)
+    dd_dir = ddr.DropDown(360, 320, 180, 50)
+
+    # Variable to carry message to be sent through UDP
+    message = ''
+
+    # Run DataRec.exe
+    # os.system(r'D:\TohokuUniversity\BCI-task\BCI-tools\gUSBamp\DataRec\DataRec\bin\Debug\DataRec')
+    # subprocess.call([r"D:\TohokuUniversity\BCI-task\BCI-tools\gUSBamp\DataRec\DataRec\bin\Debug\DataRec.exe"])
+    # subprocess.run([r"D:\TohokuUniversity\BCI-task\BCI-tools\gUSBamp\DataRec\DataRec\bin\Debug\DataRec.exe"])
+    # This console app is using .NET Core
+    # subprocess.run(r'D:\TohokuUniversity\C#-Test\simpleText\simpleText\bin\Debug\netcoreapp3.1\simpleText.exe')
+    # This console app is using .NET Framework 4.7
+    # os.system(r'D:\TohokuUniversity\C#-Test\simpleText-NetFramework\simpleText-NetFramework\bin\Debug\simpleText-NetFramework.exe')
+
+
+    ### 27 DEC 2019 ###
+    # _thread.start_new_thread(os.system(r'D:\TohokuUniversity\C#-Test\simpleText\simpleText\bin\Debug\netcoreapp3.1\simpleText.exe'))
+    # subprocess.Popen(r'D:\TohokuUniversity\C#-Test\simpleText\simpleText\bin\Debug\netcoreapp3.1\simpleText.exe', shell = False)
+    # subprocess.Popen(r'D:\TohokuUniversity\BCI-task\BCI-tools\gUSBamp\DataRec\DataRec\bin\Debug\DataRec.exe',shell=False)
+    # subprocess.Popen(r'D:\TohokuUniversity\BCI-task\BCI-tools\gUSBamp\DataRec\DataRec\bin\x64\Debug\DataRec.exe',shell=False)
+    # print(subprocess.decode("utf-8"))
 
     menu = True
     while menu:
@@ -459,69 +441,84 @@ def main_menu():
                 pg.quit()
                 quit()
 
-            input_box1.handle_event(event)
+            input_subno.handle_event(event)
+            input_noses.handle_event(event)
+            input_norun.handle_event(event)
+
+            dd_mode.handle_event(event)
+            dd_dir.handle_event(event)
+
+            # Hovering generates color chane
+            if event.type == pg.MOUSEMOTION:
+                if button_run.isOver(pos):
+                    button_run.color = (180, 180, 180)
+                else:
+                    button_run.color = (150, 150, 150)
 
             if event.type == pg.MOUSEMOTION:
-                if button1.isOver(pos):
-                    button1.color = (100, 100, 100)
+                if button_trn.isOver(pos):
+                    button_trn.color = (180, 180, 180)
                 else:
-                    button1.color = (150, 150, 120)
+                    button_trn.color = (150, 150, 150)
 
-                if button2.isOver(pos):
-                    button2.color = (100, 100, 100)
+            if event.type == pg.MOUSEMOTION:
+                if button_udp.isOver(pos):
+                    button_udp.color = (180, 180, 180)
                 else:
-                    button2.color = (150, 150, 120)
+                    button_udp.color = (150, 150, 150)
 
-                if button3.isOver(pos):
-                    button3.color = (100, 100, 100)
-                else:
-                    button3.color = (150, 150, 120)
-
-                if button4.isOver(pos):
-                    button4.color = (100, 100, 100)
-                else:
-                    button4.color = (150, 150, 120)
-
+            # Executing test or calibration
             if event.type == pg.MOUSEBUTTONDOWN:
-                if event.button == 1 and button3.isOver(pos) and chkbox2.checked:
-                    vertical_cal_run()
-                    menu = False
-
-                elif event.button == 1 and button4.isOver(pos) and chkbox2.checked:
-                    horizontal_cal_run()
-                    menu = False
-
-                elif event.button == 1 and button3.isOver(pos) and chkbox1.checked:
+                if event.button == 1 and button_run.isOver(pos) and \
+                        dd_mode.active_list1 and dd_dir.active_list1:
                     vertical_test_run()
-                    menu = False
 
-                elif event.button == 1 and button4.isOver(pos) and chkbox1.checked:
+                elif event.button == 1 and button_run.isOver(pos) and \
+                        dd_mode.active_list1 and dd_dir.active_list2:
                     horizontal_test_run()
-                    menu = False
 
-            chkbox1.update_checkbox(event)
-            chkbox2.update_checkbox(event)
+                elif event.button == 1 and button_run.isOver(pos) and \
+                        dd_mode.active_list2 and dd_dir.active_list1:
+                    vertical_cal_run()
+
+                elif event.button == 1 and button_run.isOver(pos) and \
+                        dd_mode.active_list2 and dd_dir.active_list1:
+                    horizontal_cal_run()
+
+                elif event.button == 1 and button_udp.isOver(pos):
+                    print(message)
+                    sock = socket.socket(socket.AF_INET,  # Internet
+                                         socket.SOCK_DGRAM)  # UDP
+
+                    # Sending command by UDP
+                    sock.sendto(bytes(message, 'utf-8'), (UDP_IP, UDP_PORT))
+
+        message = 'T0211' + input_subno.text2UDP + input_noses.text2UDP + input_norun.text2UDP + '1' + '1' + '9'
 
         screen.fill((30, 30, 30))
-        text_disp("Subject No.: ", screen, 150, 105)
-        input_box1.draw(screen)
-        input_box1.update()
+        text_disp("Subject No.: ", screen, 80, 80)
+        text_disp("Session No.: ", screen, 80, 120)
+        text_disp("Run No.      : ", screen, 80, 160)
+        input_subno.draw(screen)
+        input_subno.update()
+
+        input_noses.draw(screen)
+        input_noses.update()
+
+        input_norun.draw(screen)
+        input_norun.update()
+
+        # Drop down list declaration
+        dd_mode.draw()
+        dd_mode.option()
+        dd_dir.draw()
+        dd_dir.option()
 
         # Button declaration
-        button1.draw(screen, 1)
-        button2.draw(screen, 1)
-        button3.draw(screen, 1)
-        button4.draw(screen, 1)
+        button_run.draw(screen, 1)
+        button_trn.draw(screen, 1)
+        button_udp.draw(screen)
 
-        # Render checkbox
-        chkbox1.render_checkbox()
-        chkbox2.render_checkbox()
-
-        # Checkbox instruction
-        if chkbox1.checked and chkbox2.checked:
-            text_disp("Unable to Choose Both Phase", screen, 150, 200)
-        else:
-            text_disp("Please choose Calibration or Test Phase", screen, 90, 200)
 
         # Update screen
         pg.display.flip()
