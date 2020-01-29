@@ -2,21 +2,16 @@
 UPDATED VERSION OF SEQ3, draft
 Created by: Orvin Demsy
 Assignment for on BCI motor imagery sequence
-Due Date: 6 January 2019
+Due Date: 8 January 2019
 
 Task:
-- Organize the code neatly
+Currently a button is needed to be pressed to send command to record data.
+Instead of pressing the button, make the recording process happened automatically each trial.
+Specifically, every time "white cross" appears in each trial.
 
-Message requirement for DataRec.exe:
-received_data = [T/O] + [Su] + [S] + [R] + [D] + [L] + [t]
-                  0      1,2    3     4     5     6     7
-[T/R/O/F]: Training (Relax) / Online Test (Feedback)
-[Su]: Number of subject 00, 01, 02, ..., 99
-[S]:  Number of session 0, 1, ..., 9
-[R]:  Number of run 0, 1, ..., 9
-[D]:  Duration of recording in seconds 0, 1, ..., 9
-[L]:  Label of task 0, 1, 2
-[t]:  Number of trial during a run 0, 1, ..., 9
+Step:
+- replace the send.sock command to each iteration.
+- The "Message" sent to UDP need to be modified so it can iterate through each trial
 '''
 
 import pygame as pg
@@ -55,10 +50,6 @@ pos_list = []
 hor_test = False
 ver_test = False
 
-class JustText():
-    def __init__(self, text=''):
-        self.text = text
-
 # MAIN MENU
 def main_menu():
     clock = pg.time.Clock()
@@ -71,8 +62,8 @@ def main_menu():
     button_udp = widget.Button((255, 200, 100), 360, 110, 180, 50, "Send UDP")
 
     # Dropdown list instatiation
-    dd_mode = ddl.DropDown(80, 320, 180, 50)
-    dd_dir = ddr.DropDown(360, 320, 180, 50)
+    dd_mode = ddl.DropDown(80, 320, 180, 50, screen)
+    dd_dir = ddr.DropDown(360, 320, 180, 50, screen)
 
     # Variable to carry message to be sent through UDP
     message = ''
@@ -81,7 +72,7 @@ def main_menu():
     seq = sequence.Sequence(screen)
 
     # Run DataRec.exe
-    subprocess.Popen(r'D:\TohokuUniversity\BCI-task\BCI-tools\gUSBamp\DataRec\DataRec\bin\x64\Debug\DataRec.exe',shell=False)
+    # subprocess.Popen(r'D:\TohokuUniversity\BCI-task\BCI-tools\gUSBamp\DataRec\DataRec\bin\x64\Debug\DataRec.exe', shell=False)
 
     menu = True
     while menu:
@@ -122,41 +113,42 @@ def main_menu():
             if event.type == pg.MOUSEBUTTONDOWN:
                 if event.button == 1 and button_run.isOver(pos) and \
                         dd_mode.active_list1 and dd_dir.active_list1:
+                    print('\n=== Running Test Mode Vertical Direction ===\n')
                     seq.vertical_test()
+                    print('\n=== Sequence Ended ===\n')
+
 
                 elif event.button == 1 and button_run.isOver(pos) and \
                         dd_mode.active_list1 and dd_dir.active_list2:
+                    print('=== Running Test Mode Horizontal Direction ===\n')
                     seq.horizontal_test()
+                    print('=== Sequence Ended ===\n')
 
                 elif event.button == 1 and button_run.isOver(pos) and \
                         dd_mode.active_list2 and dd_dir.active_list1:
+                    print('=== Running Calibration Mode Vertical Direction ===\n')
                     seq.vertical_cal()
+                    print('=== Sequence Ended ===\n')
 
                 elif event.button == 1 and button_run.isOver(pos) and \
                         dd_mode.active_list2 and dd_dir.active_list2:
+                    print('=== Running Calibration Mode Horizontal Direction ===\n')
                     seq.horizontal_cal()
+                    print('=== Sequence Ended ===\n')
 
                 elif event.button == 1 and button_udp.isOver(pos):
                     print(message)
-                    sock = socket.socket(socket.AF_INET,  # Internet
-                                         socket.SOCK_DGRAM)  # UDP
+                    print('where x will belong to a digit representing direction')
+                    print('and y will represent trial number\n')
+                    print('=== Please consult the documentation for further information ===\n')
+                    # sock = socket.socket(socket.AF_INET,  # Internet
+                    #                      socket.SOCK_DGRAM)  # UDP
 
-                    # Sending command by UDP
-                    sock.sendto(bytes(message, 'utf-8'), (UDP_IP, UDP_PORT))
-
-        '''
-        received_data = [T/O] + [Su] + [S] + [R] + [D] + [L] + [t]
-                  0      1,2    3     4     5     6     7
-        [T/R/O/F]: Training (Relax) / Online Test (Feedback)
-        [Su]: Number of subject 00, 01, 02, ..., 99
-        [S]:  Number of session 0, 1, ..., 9
-        [R]:  Number of run 0, 1, ..., 9
-        [L]:  Label of task 0, 1, 2
-        [t]:  Number of trial during a run 0, 1, ..., 9
-        
-        The duration isn't included in the message
-        '''
-        message = 'T' + input_subno.text2UDP + input_noses.text2UDP + input_norun.text2UDP + '1' + '7'
+        #           Sending command by UDP
+        #           sock.sendto(bytes(message, 'utf-8'), (UDP_IP, UDP_PORT))
+        # print(type(input_subno.text2UDP))
+        message = 'T' + input_subno.text2UDP + input_noses.text2UDP + input_norun.text2UDP + 'xy'
+        seq.message2UDP = 'T' + input_subno.text2UDP + input_noses.text2UDP + input_norun.text2UDP
 
         screen.fill((30, 30, 30))
         sequence.text_disp("Subject No.: ", screen, 80, 80)
