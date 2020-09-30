@@ -43,7 +43,7 @@ When ‘Run’ button is clicked, sequence will run. Simultaneously, the program
 The recorded data will be saved in the same directory of main program. A ‘Data’ folder will be created then inside this folder you shall find ‘T’ folder, inside this folder there will be folder with one digit indicating number of sessions. Inside this folder there will be a file with three digits, indicating, number of runs, arrow direction, and number of trials. The details of name file will be discussed further in DataRec section.
 
 During the sequence, if program is recording properly the following text should appear on console.
-![seq_running_edit1](/images/gif/seq_running_edit1.png)
+![seq_running_edit1](/images/seq_running_edit1.png)
 
 Box color | Description
 ---|:---
