@@ -34,7 +34,7 @@ There are two modes available calibration and test
 
 2. Test
 
-  Test mode is when the experiment is actually being evaluated by the program. In this mode, the previously generated model in calibration mode is utilized as user performs several motor-imagery tasks. The only difference between test and calibration mode is that in the last 4 seconds of each trial of a bar will be shown. This bar indicates subject's performace in motor-imagery task.
+   Test mode is when the experiment is actually being evaluated by the program. In this mode, the previously generated model in calibration mode is utilized as user performs several motor-imagery tasks. The only difference between test and calibration mode is that in the last 4 seconds of each trial of a bar will be shown. This bar indicates subject's performace in motor-imagery task.
 
 ![mi-bci-cali.gif](/images/gif/mi-bci-test.gif)
 
