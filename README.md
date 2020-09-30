@@ -27,12 +27,14 @@ After all information is inputted correctly pressing `Run` will execute one run.
 ## Two Modes
 There are two modes available calibration and test
 1. Calibration
-Calibration mode is used to calibrate the EEG recording amplifier to specific subject. This mode should be done prior to test mode especially to new subject who has never done experiment before. This mode enables EEG recorder to develop subject-specific model, which enables it to properly record EEG. In this mode, subject is asked to perform motor-imagery task that corresponds to certain arrow direction shown on the screen. 
+
+   Calibration mode is used to calibrate the EEG recording amplifier to specific subject. This mode should be done prior to test mode especially to new subject who has never done experiment before. This mode enables EEG recorder to develop subject-specific model, which enables it to properly record EEG. In this mode, subject is asked to perform motor-imagery task that corresponds to certain arrow direction shown on the screen. 
 
 ![mi-bci-cali.gif](/images/gif/mi-bci-cali.gif)
 
 2. Test
-Test mode is when the experiment is actually being evaluated by the program. In this mode, the previously generated model in calibration mode is utilized as user performs several motor-imagery tasks. The only difference between test and calibration mode is that in the last 4 seconds of each trial of a bar will be shown. This bar indicates subject's performace in motor-imagery task.
+
+  Test mode is when the experiment is actually being evaluated by the program. In this mode, the previously generated model in calibration mode is utilized as user performs several motor-imagery tasks. The only difference between test and calibration mode is that in the last 4 seconds of each trial of a bar will be shown. This bar indicates subject's performace in motor-imagery task.
 
 ![mi-bci-cali.gif](/images/gif/mi-bci-test.gif)
 
