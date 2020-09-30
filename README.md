@@ -13,4 +13,6 @@ These specification/ tools are required to conduct the experiment:
 - g.tec USB AMP driver & g.tec C API driver installer
 
 # How It Works
+## Main Menu
+![mi-bci-gui](/images/gif/mi-bci-gui.gif)
 
